@@ -1,7 +1,8 @@
 # Module 3: Redlining
 
 ## Team members and contributions
-To be updated
+
+ - Nikhil Shah: everything
 
 ## Learning objectives
 
