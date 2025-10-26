@@ -37,6 +37,8 @@ We will use a vector dataset of redlining maps from [Mapping Inequality](https:/
 
 Click 'Explore the Maps' to look at some cities and neighborhoods you are familiar with. Who is the intended audience of this data science project, and how are the data used to communicate understanding, insight, and knowledge? Why is this effective?
 
+- This seems to be for a relatively general audience, with the goal of educating about redlining through concrete data, to show its history and its effects. It might be targeted at those who would be presently impacted by historical redlining. By showing maps overlaid on major present-day cities, it illustrates the relevance of redlining to modern America and leads viewers to understand its lasting effects where they live.
+
 ### Q2 (1 point)
 
 Create a `data/` folder in the root of your project and create five subfolders labeled with the city names from Fig. 2 of Schell et al. 2020. Because the spatial files will be large, add `data/` to the .gitignore file.
