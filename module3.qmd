@@ -13,6 +13,8 @@ library(terra) # spatial data analysis
 library(tidyterra) #tidyverse methods for terra objects
 library(ggplot2)
 library(tidyverse)
+library(ggspatial)
+library(cowplot)
 ```
 
 ### Use of GitHub
@@ -73,13 +75,13 @@ indianapolis |>
   scale_color_manual(values = c("#3366bb", "#009900", "orange", "#dd3333")) +
   theme_void()
 
-cities |>
-  ggplot() +
-  geom_sf(aes(color = grade),
-          linewidth = 0.5) +
-  scale_color_manual(values = c("#3366bb", "#009900", "orange", "#dd3333")) +
-  facet_wrap(~city, scales = 'free') +
-  theme_void()
+#cities |>
+#  ggplot() +
+#  geom_sf(aes(color = grade),
+#          linewidth = 0.5) +
+#  scale_color_manual(values = c("#3366bb", "#009900", "orange", "#dd3333")) +
+#  facet_wrap(~city, scales = 'free') +
+#  theme_void()
 ```
 
 
@@ -104,33 +106,34 @@ For each city, copy the coarsest resolution files for the B04 and B08 bands alon
 Use the terra package and the `rast()` function to import the two bands, which are reported as digital numbers. Combine to calculate NDVI and display a quick plot of your first city. Since you have 5 cities to plot, how can you optimize these operations with a for loop? (Not necessary to actually do so.)
 
 ```{r}
-indianapolis_raster_B04 <- rast('data/indianapolis/T16SEJ_20250705T162921_B04_60m.jp2')
-indianapolis_raster_B08 <- rast('data/indianapolis/T16SEJ_20250705T162921_B8A_60m.jp2')
+indianapolis_raster_B04 <- rast('data/indianapolis/T16TEK_20250531T162829_B04_60m.jp2')
+indianapolis_raster_B08 <- rast('data/indianapolis/T16TEK_20250531T162829_B8A_60m.jp2')
 
 indianapolis_ndvi <- (indianapolis_raster_B08 - indianapolis_raster_B04) / (indianapolis_raster_B08 + indianapolis_raster_B04)
+
+indianapolis_ndvi |>
+  ggplot() + 
+  geom_spatraster(data = indianapolis_ndvi)
 
 baltimore_raster_B04 <- rast('data/baltimore/T18SUJ_20250603T155001_B04_60m.jp2')
 baltimore_raster_B08 <- rast('data/baltimore/T18SUJ_20250603T155001_B8A_60m.jp2')
 
 baltimore_ndvi <- (baltimore_raster_B08 - baltimore_raster_B04) / (baltimore_raster_B08 + baltimore_raster_B04)
 
+phoenix_raster_B04 <- rast('data/phoenix/T12SUC_20250329T181751_B04_60m.jp2')
+phoenix_raster_B08 <- rast('data/phoenix/T12SUC_20250329T181751_B8A_60m.jp2')
 
-for(city in c('indianapolis')) {
-  for(band in c('B04', 'B08')) {
-    ggplot(data = str_c(city, 'raster', band, sep = '_')) +
-      geom_spatraster()
-  }
-}
+phoenix_ndvi <- (phoenix_raster_B08 - phoenix_raster_B04) / (phoenix_raster_B08 + phoenix_raster_B04)
 
-indianapolis_raster_B04 |> 
-  ggplot() +
-  geom_spatraster(data = indianapolis_raster_B04) +
-  geom_spatraster(data = indianapolis_raster_B08) 
+birmingham_raster_B04 <- rast('data/birmingham/T16SEC_20250521T162829_B04_60m.jp2')
+birmingham_raster_B08 <- rast('data/birmingham/T16SEC_20250521T162829_B8A_60m.jp2')
 
-indianapolis_ndvi |>
-  ggplot() + 
-  geom_spatraster(data = indianapolis_ndvi)
+birmingham_ndvi <- (birmingham_raster_B08 - birmingham_raster_B04) / (birmingham_raster_B08 + birmingham_raster_B04)
 
+minneapolis_raster_B04 <- rast('data/minneapolis/T15TVK_20250714T165921_B04_60m.jp2')
+minneapolis_raster_B08 <- rast('data/minneapolis/T15TVK_20250714T165921_B8A_60m.jp2')
+
+minneapolis_ndvi <- (minneapolis_raster_B08 - minneapolis_raster_B04) / (minneapolis_raster_B08 + minneapolis_raster_B04)
 ```
 
 
@@ -139,13 +142,18 @@ indianapolis_ndvi |>
 Do the rasters and polygons share the same coordinate reference system? If not, project both into the same coordinate system and defend your choice.
 
 ```{r}
-baltimore_ndvi_4326 <- project(baltimore_ndvi, 'epsg:4326')
+#st_crs(baltimore)
+#st_crs(baltimore_raster_B04)
 
-st_crs(baltimore)
-st_crs(baltimore_raster_B04)
+indianapolis_ndvi_4326 <- project(indianapolis_ndvi, 'epsg:4326')
+baltimore_ndvi_4326 <- project(baltimore_ndvi, 'epsg:4326')
+phoenix_ndvi_4326 <- project(phoenix_ndvi, 'epsg:4326')
+birmingham_ndvi_4326 <- project(birmingham_ndvi, 'epsg:4326')
+minneapolis_ndvi_4326 <- project(minneapolis_ndvi, 'epsg:4326')
+
 ```
 
-- They do, they're both in WGS84 (4326)
+- They are not, the vector data uses a WGS84 GCS and the raster data uses a WGS84 PCS. I am putting both into the geographic coordinate system, because the PCS distorts angles and offsets the maps from being aligned, which is unintuitive and doesn't match Schell et al.
 
 ### Q5 (1 points)
 
@@ -153,13 +161,14 @@ Overlay the projected vector file onto the projected NDVI for a single city usin
 
 ```{r}
 ggplot() +
-  geom_spatraster(data = baltimore_ndvi_4326) +
-  geom_sf(data = baltimore,
+  geom_spatraster(data = indianapolis_ndvi_4326) +
+  geom_sf(data = indianapolis,
           aes(color = grade),
           linewidth = 0.5,
           fill = 'transparent') +
-  coord_sf(xlim = c(-76.8, -76.46), ylim = c(39.15, 39.45)) +
-  scale_fill_gradient2(low = '#aaaaaa', high = '#00ff00') +
+  coord_sf(xlim = c(-86.3, -86.03), ylim = c(39.93, 39.668)) +
+  annotation_scale() +
+  scale_fill_gradient2(low = '#ffffff', high = '#00cc00') +
   scale_color_manual(values = c("#3366bb", "#009900", "orange", "#dd3333"))
 ```
 
@@ -167,6 +176,113 @@ ggplot() +
 ### Q6 (1 point)
 
 Repeat the above for all 5 cities and add the city name. Explore the `cowplot` or `patchwork` packages to create a multi-panel figure.
+
+```{r}
+indianapolis_plot <- ggplot() +
+  geom_spatraster(data = indianapolis_ndvi_4326) +
+  geom_sf(data = indianapolis,
+          aes(color = grade),
+          linewidth = 0.5,
+          fill = 'transparent') +
+  coord_sf(xlim = c(-86.3, -86.03), ylim = c(39.93, 39.668)) +
+  annotation_scale() +
+  scale_fill_gradient2(low = '#ffffff', high = '#00cc00') +
+  scale_color_manual(values = c("#3366bb", "#009900", "orange", "#dd3333")) +
+  labs(title = 'Indianapolis',
+       color = 'Redlining',
+       fill = 'NDVI Index') +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.line = element_blank(),
+    legend.box = "horizontal"
+  )
+
+baltimore_plot <- ggplot() +
+  geom_spatraster(data = baltimore_ndvi_4326) +
+  geom_sf(data = baltimore,
+          aes(color = grade),
+          linewidth = 0.5,
+          fill = 'transparent') +
+  coord_sf(xlim = c(-76.76, -76.5), ylim = c(39.175, 39.41)) +
+  annotation_scale() +
+  scale_fill_gradient2(low = '#ffffff', high = '#00cc00') +
+  scale_color_manual(values = c("#3366bb", "#009900", "orange", "#dd3333")) +
+  labs(title = 'Baltimore') +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.line = element_blank()
+  )
+
+phoenix_plot <- ggplot() +
+  geom_spatraster(data = phoenix_ndvi_4326) +
+  geom_sf(data = phoenix,
+          aes(color = grade),
+          linewidth = 0.5,
+          fill = 'transparent') +
+  coord_sf(xlim = c(-112.11, -112.02), ylim = c(33.42, 33.5)) +
+  annotation_scale() +
+  scale_fill_gradient2(low = '#ffffff', high = '#00cc00') +
+  scale_color_manual(values = c("#3366bb", "#009900", "orange", "#dd3333")) +
+  labs(title = 'Phoenix') +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.line = element_blank()
+  )
+
+birmingham_plot <- ggplot() +
+  geom_spatraster(data =  birmingham_ndvi_4326) +
+  geom_sf(data = birmingham,
+          aes(color = grade),
+          linewidth = 0.5,
+          fill = 'transparent') +
+  coord_sf(xlim = c(-86.95, -86.67), ylim = c(33.42, 33.65)) +
+  annotation_scale() +
+  scale_fill_gradient2(low = '#ffffff', high = '#00cc00') +
+  scale_color_manual(values = c("#3366bb", "#009900", "orange", "#dd3333")) +
+  labs(title = 'Birmingham') +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.line = element_blank()
+  )
+
+minneapolis_plot <- ggplot() +
+  geom_spatraster(data = minneapolis_ndvi_4326) +
+  geom_sf(data = minneapolis,
+          aes(color = grade),
+          linewidth = 0.5,
+          fill = 'transparent') +
+  coord_sf(xlim = c(-93.35, -93.18), ylim = c(44.88, 45.07)) +
+  annotation_scale() +
+  scale_fill_gradient2(low = '#ffffff', high = '#00cc00') +
+  scale_color_manual(values = c("#3366bb", "#009900", "orange", "#dd3333")) +
+  labs(title = 'Minneapolis') +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.line = element_blank()
+  )
+
+```
+
+```{r}
+legend <- get_legend(indianapolis_plot + theme(legend.box.margin = margin(0, 0, 0, 12)))
+
+plot_grid(indianapolis_plot + theme(legend.position="none"),
+          baltimore_plot + theme(legend.position="none"),
+          phoenix_plot + theme(legend.position="none"),
+          birmingham_plot + theme(legend.position="none"),
+          minneapolis_plot + theme(legend.position="none"),
+          legend)
+```
 
 ### Q7 (2 points)
 
