@@ -136,6 +136,7 @@ minneapolis_raster_B08 <- rast('data/minneapolis/T15TVK_20250714T165921_B8A_60m.
 minneapolis_ndvi <- (minneapolis_raster_B08 - minneapolis_raster_B04) / (minneapolis_raster_B08 + minneapolis_raster_B04)
 ```
 
+- You could do this with a for loop by creating a vector with all the city names and iterating over them, with str_c, to import the data all and do the NDVI calculations all at once.
 
 ### Q4 (1 point)
 
@@ -288,7 +289,103 @@ plot_grid(indianapolis_plot + theme(legend.position="none"),
 
 Now, let's examine the relationship between redlining and NDVI. Temporarily re-read in your redlining polygons using `terra:::vect()`. You can use `terra:extract()` on these temporary polygons within `mutate()` on your original polygons read in with `read_sf()`. Because the output of `terra::extract()` is a data.frame, `dplyr::pull()` can be helpful.
 
+```{r}
+indianapolis_vect <- vect('data/indianapolis/geojson.json')
+baltimore_vect <- vect('data/baltimore/geojson.json')
+phoenix_vect <- vect('data/phoenix/geojson.json')
+birmingham_vect <- vect('data/birmingham/geojson.json')
+minneapolis_vect <- vect('data/minneapolis/geojson.json')
+```
+
 Extract the mean, median, and central 95% quantile of NDVI from each delineated neighborhood while retaining the identity of the city. Perform your choice of at least two exploratory data visualizations utilizing different variables to evaluate this relationship and examine whether it differs between cities.
+
+```{r}
+indianapolis <- indianapolis |>
+  mutate(mean = terra::extract(indianapolis_ndvi_4326, indianapolis_vect, fun = mean, ID = F, na.rm = T)) |>
+  mutate(median = terra::extract(indianapolis_ndvi_4326, indianapolis_vect, fun = median, ID = F, na.rm = T))
+  
+baltimore <- baltimore |>
+  mutate(mean = terra::extract(baltimore_ndvi_4326, baltimore_vect, fun = mean, ID = F, na.rm = T)) |>
+  mutate(median = terra::extract(baltimore_ndvi_4326, baltimore_vect, fun = median, ID = F, na.rm = T))
+  
+phoenix <- phoenix |>
+  mutate(mean = terra::extract(phoenix_ndvi_4326, phoenix_vect, fun = mean, ID = F, na.rm = T)) |>
+  mutate(median = terra::extract(phoenix_ndvi_4326, phoenix_vect, fun = median, ID = F, na.rm = T)) 
+  
+birmingham <- birmingham |>
+  mutate(mean = terra::extract(birmingham_ndvi_4326, birmingham_vect, fun = mean, ID = F, na.rm = T)) |>
+  mutate(median = terra::extract(birmingham_ndvi_4326, birmingham_vect, fun = median, ID = F, na.rm = T)) 
+  
+minneapolis <- minneapolis |>
+  mutate(mean = terra::extract(minneapolis_ndvi_4326, minneapolis_vect, fun = mean, ID = F, na.rm = T)) |>
+  mutate(median = terra::extract(minneapolis_ndvi_4326, minneapolis_vect, fun = median, ID = F, na.rm = T)) 
+  
+cities <- indianapolis |>
+  bind_rows(baltimore) |>
+  bind_rows(phoenix) |>
+  bind_rows(birmingham) |>
+  bind_rows(minneapolis)
+```
+
+```{r}
+ggplot() +
+  geom_point(indianapolis,
+             mapping = aes(x = grade,
+                           y = mean$T16TEK_20250531T162829_B8A_60m),
+                           color = 'red',
+                           size = 0.4) +
+  geom_point(baltimore,
+             mapping = aes(x = grade,
+                           y = mean$T18SUJ_20250603T155001_B8A_60m),
+                           color = 'orange',
+                           size = 0.4) +
+  geom_point(phoenix,
+             mapping = aes(x = grade,
+                           y = mean$T12SUC_20250329T181751_B8A_60m),
+                           color = 'green',
+                           size = 0.4) +
+  geom_point(birmingham,
+             mapping = aes(x = grade,
+                           y = mean$T16SEC_20250521T162829_B8A_60m),
+                           color = 'blue',
+                           size = 0.4) +
+  geom_point(minneapolis,
+             mapping = aes(x = grade,
+                           y = mean$T15TVK_20250714T165921_B8A_60m),
+                           color = 'purple',
+                           size = 0.4)
+
+ggplot() +
+  geom_point(indianapolis,
+             mapping = aes(x = grade,
+                           y = median$T16TEK_20250531T162829_B8A_60m),
+                           color = 'red',
+                           size = 0.4) +
+  geom_point(baltimore,
+             mapping = aes(x = grade,
+                           y = median$T18SUJ_20250603T155001_B8A_60m),
+                           color = 'orange',
+                           size = 0.4) +
+  geom_point(phoenix,
+             mapping = aes(x = grade,
+                           y = median$T12SUC_20250329T181751_B8A_60m),
+                           color = 'green',
+                           size = 0.4) +
+  geom_point(birmingham,
+             mapping = aes(x = grade,
+                           y = median$T16SEC_20250521T162829_B8A_60m),
+                           color = 'blue',
+                           size = 0.4) +
+  geom_point(minneapolis,
+             mapping = aes(x = grade,
+                           y = median$T15TVK_20250714T165921_B8A_60m),
+                           color = 'purple',
+                           size = 0.4)
+
+
+```
+
+
 
 ### Bonus 1 (1 point)
 
@@ -297,6 +394,60 @@ Perform a statistical test to support your visual analysis above.
 ### Q8 (2 points)
 
 Create a final plot and describe whether NDVI is associated with historical redlining. Does this pattern differ between the five cities examined here? If so, how?
+
+```{r}
+ggplot() +
+  geom_point(indianapolis,
+             mapping = aes(x = grade,
+                           y = mean$T16TEK_20250531T162829_B8A_60m,
+                           color = city),
+             #color = 'forestgreen',
+             size = 1,
+             position = position_nudge(x = -0.2)) +
+  geom_point(baltimore,
+             mapping = aes(x = grade,
+                           y = mean$T18SUJ_20250603T155001_B8A_60m,
+                           color= city),
+             #color = 'blue',
+             size = 1,
+             position = position_nudge(x = -0.1)) +
+  geom_point(phoenix,
+             mapping = aes(x = grade,
+                           y = mean$T12SUC_20250329T181751_B8A_60m,
+                           color = city),
+             #color = 'orange',
+             size = 1) +
+  geom_point(birmingham,
+             mapping = aes(x = grade,
+                           y = mean$T16SEC_20250521T162829_B8A_60m,
+                           color = city),
+             #color = 'red',
+             size = 1,
+             position = position_nudge(x = 0.1)) +
+  geom_point(minneapolis,
+             mapping = aes(x = grade,
+                           y = mean$T15TVK_20250714T165921_B8A_60m,
+                           color = city),
+             #color = 'purple',
+             size = 1,
+             position = position_nudge(x = 0.2)) +
+  scale_color_manual(
+    name = "City", 
+    values = c("Indianapolis" = "forestgreen", 
+               "Baltimore" = "blue",
+               "Phoenix" = "orange",
+               "Birmingham" = "red",
+               "Minneapolis" = "purple"),
+    breaks = c("Indianapolis", "Baltimore", 'Phoenix', 'Birmingham', 'Minneapolis'),
+    labels = c("Indianapolis", "Baltimore", 'Phoenix', 'Birmingham', 'Minneapolis'),
+  ) +
+  labs(title = 'Effect of Redlining on NDVI Index in Various Cities',
+       x = 'Redlining Grade',
+       y = 'Mean NDVI') +
+  theme_bw()
+
+```
+
 
 ### Bonus 2 (1 point)
 
