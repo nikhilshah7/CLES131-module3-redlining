@@ -448,6 +448,7 @@ ggplot() +
 
 ```
 
+- The pattern of NDVI decreasing in more redlined neighborhoods seems reliably consistent across cities throughout the United States. A notable exception is Birmingham, where the NDVI of the most redlined neighborhoods is similar to that of the most redlined ones. While a downward trend is visible, it's possible that a higher overall Black population in Birmingham compared to other cities might have made it so that there were many more redlined neighborhoods, and so less of a disparity is visible.
 
 ### Bonus 2 (1 point)
 
